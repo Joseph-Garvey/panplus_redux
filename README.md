@@ -5,12 +5,12 @@ In future, I may develop this further and update this to fix the things I hated 
 
 # RELEASE INSTALLATION INSTRUCTIONS
 1. Enable dev mode in your favourite chromium browser.
-2. Go to your extensions.
-3. Load packed.
-4. Select the zip file under releases v0.1 (on the right hand side).
-5. Make sure the extension is enabled.
-6. Hover over volume, and whack that multiplier up until you can finally hear your lecture.
-7. enjoy
+2. Download releases v0.1 and unzip
+3. Go to your extensions.
+4. Load unpacked and select the folder you unzipped.
+6. Make sure the extension is enabled.
+7. Hover over volume, and whack that multiplier up until you can finally hear your lecture.
+8. enjoy
 
 _________________________________
 The original project's readme is included below for future reference.
