@@ -1,4 +1,19 @@
-Panopto Plus
+Panopto Plus Redux
+
+For now, this adds the ability to use Panopto Plus with Cambridge University domains.
+In future, I may develop this further and update this to fix the things I hated about Panopto as a student.
+
+# RELEASE INSTALLATION INSTRUCTIONS
+1. Enable dev mode in your favourite chromium browser.
+2. Go to your extensions.
+3. Load packed.
+4. Select the zip file under releases v0.1 (on the right hand side).
+5. Make sure the extension is enabled.
+6. Hover over volume, and whack that multiplier up until you can finally hear your lecture.
+7. enjoy
+
+_________________________________
+The original project's readme is included below for future reference.
 
 ### Purpose of this project
 To create a chrome extension to improve the webcasting experience for panopto. It will serve a few purposes:
