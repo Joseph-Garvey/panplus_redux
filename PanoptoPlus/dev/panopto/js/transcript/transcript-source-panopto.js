@@ -64,10 +64,15 @@ class TranscriptSourcePanopto {
      * @returns {Promise<string>} A promise that resolves with the raw VTT transcript data.
      */
     async retrieve() {
+        console.log("TranscriptSourcePanopto: Entering retrieve method."); // <-- ADDED LOG
         return new Promise(async (resolve, reject) => {
             try {
+                console.log("TranscriptSourcePanopto: Attempting to get Delivery ID."); // <-- ADDED LOG
                 const deliveryId = await ContextBridge.getDeliveryID();
+                console.log("TranscriptSourcePanopto: Received Delivery ID:", deliveryId); // <-- ADDED LOG
+
                 if (!deliveryId) {
+                    console.error("TranscriptSourcePanopto: Failed to get Delivery ID."); // <-- ADDED LOG
                     return reject("Could not get Delivery ID from page.");
                 }
 
@@ -107,7 +112,8 @@ class TranscriptSourcePanopto {
                 resolve(vttData); // Resolve with the raw VTT content
 
             } catch (error) {
-                console.error("Error retrieving transcript:", error);
+                // Log the specific error caught here
+                console.error("TranscriptSourcePanopto: Error caught in retrieve method:", error); // <-- MODIFIED LOG
                 reject(`Transcript retrieval failed: ${error.message}`);
             }
         });

@@ -1,50 +1,39 @@
 /**
- * @file Transcript class to hold the transcript
+ * @file Transcript class, holds transcript data and provides methods to convert to VTTCue array
  */
-let Transcript = (() => {
-    class Transcript {
-        /**
-         * 
-         * @param {Array.<{time: Number, text: String}>} data Processed data from a TranscriptSource
-         */
-        constructor(data) {
-            if (!data) throw new Error("Transcript data cannot be undefined");
-            this.data = data;
-        }
+class Transcript {
+    /**
+     * Constructor
+     * @param {Array.<{time: Number, text: String}>} data Transcript data
+     */
+    constructor(data) {
+        this.data = data;
+        this.rawVtt = null; // <-- ADDED: To store raw VTT content
+        this.deliveryId = null; // <-- ADDED: To store delivery ID for filename
+    }
 
-        /**
-         * Generate VTTCue based on data
-         * https://iandevlin.com/blog/2015/02/javascript/dynamically-adding-text-tracks-to-html5-video/
-         * @param {Number} index index to access
-         * @param {Number} flashDelay time to hide previous subtitle and show next. Default is 0.2s.
-         * @param {Number} lastIndexDuration time to show last subtitle. Default is 10s.
-         * @returns {VTTCue|undefined} Returns VTTCue using data. Only returns undefined if out of bounds.
-         */
-        getVttCue(index, flashDelay = 0.2, lastIndexDuration = 10) {
-            if (index >= 0 && index < this.data.length) {
-                if (index !== this.data.length - 1) {
-                    return new VTTCue(this.data[index].time, this.data[index+1].time - flashDelay, this.data[index].text);
-                } else {
-                    //Since data has no end time and this is the last index, we'll just use a magic duration
-                    return new VTTCue(this.data[index].time, this.data[index].time + lastIndexDuration, this.data[index].text);
-                }
-            } else {
-                throw new Error("Transcript out of bounds: Tried to access index " + index);
-            }
-        }
-
-        /**
-         * Convert to VTTCueArray for subtitling
-         * @param {Number} flashDelay time to hide previous subtitle and show next. Default is 0.2s.
-         * @param {Number} lastIndexDuration time to show last subtitle. Default is 10s.
-         * @returns {Array.<VTTCue>} Returns an array of VTTCues based on the data in this transcript
-         */
-        toVTTCueArray(flashDelay = 0.2, lastIndexDuration = 10) {
-            var result = [];
-            for (var i = 0; i < this.data.length; i++)
-                result.push(this.getVttCue(i, flashDelay, lastIndexDuration));
+    /**
+     * Convert transcript data to VTTCue array
+     * @returns {Array.<VTTCue>} Array of VTTCue objects
+     */
+    toVTTCueArray() {
+        let result = [];
+        if (!this.data || this.data.length === 0) {
             return result;
         }
+        for (let i = 0; i < this.data.length; i++) {
+            let endTime = (i + 1 < this.data.length) ? this.data[i + 1].time : this.data[i].time + 5; // Estimate end time for last cue
+            // Ensure start time is strictly less than end time
+            if (this.data[i].time < endTime) {
+                 result.push(new VTTCue(this.data[i].time, endTime, this.data[i].text));
+            } else {
+                 // Handle cases where start time might equal end time (e.g., consecutive identical timestamps)
+                 // Add a small duration, e.g., 1 second
+                 result.push(new VTTCue(this.data[i].time, this.data[i].time + 1, this.data[i].text));
+            }
+        }
+        return result;
     }
-    return Transcript;
-})();
+}
+
+export { Transcript };

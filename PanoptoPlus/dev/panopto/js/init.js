@@ -2,6 +2,14 @@
  * @file This is basically main(...){}
  * @global
  */
+
+// --- Add Imports for Message Listener ---
+// NOTE: These imports will FAIL unless you fix module loading (e.g., with a bundler)
+// If not using modules, ensure these classes are globally available when this runs.
+import { TranscriptRequester } from './transcript/transcript-requester.js';
+import { TranscriptSourcePanopto } from './transcript/transcript-source-panopto.js';
+// --- End Imports ---
+
 (() => {
     App = {};
     //return;
@@ -37,6 +45,52 @@
 
                     //Initialize initial settings
                     console.log("FIN");
+
+                    // --- Add Message Listener ---
+                    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+                        if (message.type === "GET_VTT_DATA") {
+                            console.log("Content script received GET_VTT_DATA request.");
+
+                            // Use async function to handle promise from TranscriptRequester
+                            (async () => {
+                                try {
+                                    // Ensure TranscriptRequester and Source are available
+                                    if (typeof TranscriptRequester === 'undefined' || typeof TranscriptSourcePanopto === 'undefined') {
+                                        throw new Error("Transcript components not loaded (module issue?).");
+                                    }
+                                    // Fetch the transcript data using existing logic
+                                    const transcript = await TranscriptRequester.get(new TranscriptSourcePanopto());
+
+                                    // Check if we have the necessary data (might be null if loaded from cache)
+                                    if (transcript && transcript.rawVtt && transcript.deliveryId) {
+                                        console.log("Sending VTT data back to requester.");
+                                        sendResponse({
+                                            success: true,
+                                            rawVtt: transcript.rawVtt,
+                                            deliveryId: transcript.deliveryId
+                                        });
+                                    } else {
+                                        console.warn("VTT data not available (possibly loaded from cache or fetch failed).");
+                                        sendResponse({
+                                            success: false,
+                                            error: "Raw VTT data not available. It might have been loaded from cache. Please refresh the Panopto page and try again."
+                                        });
+                                    }
+                                } catch (error) {
+                                    console.error("Error fetching transcript in content script:", error);
+                                    sendResponse({
+                                        success: false,
+                                        error: `Failed to fetch transcript: ${error.message}`
+                                    });
+                                }
+                            })();
+
+                            // Return true to indicate you will send a response asynchronously
+                            return true;
+                        }
+                        // Handle other message types if needed
+                    });
+                    // --- End Message Listener ---
 
                     //Todo: Abstract this to another class
                     const UPDATE_MESSAGE = "Update: Resolved issue preventing silence trimming.";

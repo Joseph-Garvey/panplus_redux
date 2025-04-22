@@ -3,6 +3,9 @@
  * If there is a second video, then when the cue is reached, the subtitle will be injected into the second video.
  * This is to circumvent the issue of the variable offset between the 1st and 2nd video currentTime.
  */
+import { TranscriptSourcePanopto } from '../transcript/transcript-source-panopto.js';
+import { ContextBridge } from '../context-bridge.js';
+
 let TranscriptDisplay = (() => {
     /**
      * TranscriptDisplay, includes code that will load the transcript, then inject the subtitles as cues into the first video's texttrack.
@@ -47,7 +50,9 @@ let TranscriptDisplay = (() => {
          */
         async loadTranscriptDisplay() {
             const transcript = await TranscriptRequester.get(new TranscriptSourcePanopto());
-            //this.initTranscriptTab(transcript);//This has been moved into load subtitles
+            // Call initTranscriptTab first to potentially add the download button
+            this.initTranscriptTab(transcript);
+            // Then load subtitles, which requires parsed data
             this.loadSubtitles(transcript);
         }
 
@@ -56,72 +61,89 @@ let TranscriptDisplay = (() => {
          * @param {Transcript} transcript
          */
         async initTranscriptTab(transcript) {
-            if (transcript.data.length > 0) {
+            // Download button logic removed from here
+
+            // Initialize the interactive transcript list ONLY if data was successfully parsed.
+            if (transcript && transcript.data && transcript.data.length > 0) {
                 //Initialize the main tab
-                $('#megalist-transcript').megalist();
-                //Load data from transcript
-                $('#megalist-transcript').megalist('setDataProvider', (() => {
-                    let result = [];
-                    for (let i = 0; i < transcript.data.length; i++) {
-                        result.push({
-                            //Make sure time displayed properly
-                            time: (((transcript.data[i].time / 60) | 0) + ((transcript.data[i].time | 0) % 60 / 100)).toFixed(2).replace('.',':'),
-                            text: transcript.data[i].text
-                        });
-                    }
-                    return result;
-                })());
-                //Setup display for each ul
-                $('#megalist-transcript').megalist('setLabelFunction', (item) => {
-                    return `<div><b>${item.time}:</b> ${item.text}</div>`;
-                });
-
-                //We need to access Panopto.Viewer.Viewer to change position, so setup context bridge
-                let injectedFunc = () => {
-                    let videoDOM = document.getElementsByTagName("video")[0];
-                    let track = null;
-                    for(let i = 0; i < videoDOM.textTracks.length; i++) {
-                        if (videoDOM.textTracks[i].label == "Machine Transcribed") {
-                            track = videoDOM.textTracks[i];
-                            break;
-                        }
-                    }
-                    if (track == null) console.error("Track cannot be null");
-                    bridgeReceiveDataCallback((event) => {
-                        Panopto.Viewer.Viewer.position(track.cues[parseInt(event.detail)].startTime);
-                    });
-                };
-                let ctxBridge = new ContextBridge(injectedFunc, "megalist_trigger");
-                ctxBridge.connect();
-                
-                //On user clicking a subtitle, send to DOM to request change position
-                $('#megalist-transcript').on('change', (event) => {
-                    ctxBridge.send(event.selectedIndex);
-                });
-
-                //Initialize the tab on the second screen
-                if (!VideosLoadedEvent.isSingleVideoStream()) {
-                    //Append transcript button if transcript exists
-                    $("#eventTabControl").prepend(`<div id="machTranscriptTabHeader" class="event-tab-header accented-tab"><span class="text">Transcript</span></div>`);
-
-                    //Setup transcript button code to show
-                    $("#machTranscriptTabHeader").click(() => {
-                        $('#sidebar-tabs').addClass('secondScreenTranscriptShown');
-                        $('#sidebar-tab-pg-2').show(100);
-                        $('aside[role="complementary"]').hide(100);
-                        TranscriptDisplay.resizeTranscriptIf2ndScreen();
-                    });
-                    //Setup back button to hide
-                    $(".ssh-back-btn").click(() => {
-                        $('#sidebar-tabs').removeClass('secondScreenTranscriptShown');
-                        $('#sidebar-tab-pg-2').hide();
-                        $('aside[role="complementary"]').show(100);
-                    });
-                    //Setup resize function
-                    $(window).resize(() => {
-                        TranscriptDisplay.resizeTranscriptIf2ndScreen();
-                    });
-                }
+                // ... existing megalist initialization code ...
+            }
+            // Note: The code for handling the second screen transcript tab was previously here.
+            // It should remain within the `if (transcript.data.length > 0)` block if it depends on parsed data,
+            // or moved outside if it should appear regardless.
+            // Assuming it depends on parsed data, it stays inside the if block.
+            if (transcript && transcript.data && transcript.data.length > 0) {
+                 //Initialize the main tab
+                 $('#megalist-transcript').megalist();
+                 //Load data from transcript
+                 $('#megalist-transcript').megalist('setDataProvider', (() => {
+                     let result = [];
+                     for (let i = 0; i < transcript.data.length; i++) {
+                         result.push({
+                             //Make sure time displayed properly
+                             time: (((transcript.data[i].time / 60) | 0) + ((transcript.data[i].time | 0) % 60 / 100)).toFixed(2).replace('.',':'),
+                             text: transcript.data[i].text
+                         });
+                     }
+                     return result;
+                 })());
+                 //Setup display for each ul
+                 $('#megalist-transcript').megalist('setLabelFunction', (item) => {
+                     return `<div><b>${item.time}:</b> ${item.text}</div>`;
+                 });
+ 
+                 //We need to access Panopto.Viewer.Viewer to change position, so setup context bridge
+                 let injectedFunc = () => {
+                     let videoDOM = document.getElementsByTagName("video")[0];
+                     let track = null;
+                     for(let i = 0; i < videoDOM.textTracks.length; i++) {
+                         if (videoDOM.textTracks[i].label == "Machine Transcribed") {
+                             track = videoDOM.textTracks[i];
+                             break;
+                         }
+                     }
+                     if (track == null) console.error("Track cannot be null");
+                     bridgeReceiveDataCallback((event) => {
+                         Panopto.Viewer.Viewer.position(track.cues[parseInt(event.detail)].startTime);
+                     });
+                 };
+                 let ctxBridge = new ContextBridge(injectedFunc, "megalist_trigger");
+                 ctxBridge.connect();
+                 
+                 //On user clicking a subtitle, send to DOM to request change position
+                 $('#megalist-transcript').on('change', (event) => {
+                     ctxBridge.send(event.selectedIndex);
+                 });
+ 
+                 //Initialize the tab on the second screen
+                 if (!VideosLoadedEvent.isSingleVideoStream()) {
+                     //Append transcript button if transcript exists
+                     // Check if header already exists
+                     if ($("#machTranscriptTabHeader").length === 0) {
+                        $("#eventTabControl").prepend(`<div id="machTranscriptTabHeader" class="event-tab-header accented-tab"><span class="text">Transcript</span></div>`);
+                     }
+ 
+                     //Setup transcript button code to show
+                     // Use .off().on() to prevent multiple bindings
+                     $("#machTranscriptTabHeader").off('click').on('click', () => {
+                         $('#sidebar-tabs').addClass('secondScreenTranscriptShown');
+                         $('#sidebar-tab-pg-2').show(100);
+                         $('aside[role="complementary"]').hide(100);
+                         TranscriptDisplay.resizeTranscriptIf2ndScreen();
+                     });
+                     //Setup back button to hide
+                     // Use .off().on() to prevent multiple bindings
+                     $(".ssh-back-btn").off('click').on('click', () => {
+                         $('#sidebar-tabs').removeClass('secondScreenTranscriptShown');
+                         $('#sidebar-tab-pg-2').hide();
+                         $('aside[role="complementary"]').show(100);
+                     });
+                     //Setup resize function
+                     // Use .off().on() to prevent multiple bindings
+                     $(window).off('resize.transcriptDisplay').on('resize.transcriptDisplay', () => {
+                         TranscriptDisplay.resizeTranscriptIf2ndScreen();
+                     });
+                 }
             }
         }
 
@@ -131,11 +153,27 @@ let TranscriptDisplay = (() => {
          * @returns {undefined}
          */
         async loadSubtitles(transcript) {
+            // Check if transcript or its data/cueArray method is missing before proceeding
+            if (!transcript || typeof transcript.toVTTCueArray !== 'function') {
+                console.warn("Transcript object is invalid or missing toVTTCueArray method.");
+                // Display message if the container exists
+                if ($("#sidebar-tab-pg-2").length > 0) {
+                    $("#sidebar-tab-pg-2").html("Could not load transcript data.");
+                }
+                return;
+            }
+
             const cueArray = transcript.toVTTCueArray();
             console.log(cueArray.length + " Subtitle cues detected");
-            //Stop if there are no cues in the first place
+            //Stop if there are no cues (parsing failed or empty transcript)
             if (cueArray.length == 0) {
-                $("#sidebar-tab-pg-2").html("No transcript & subtitles available for this webcast.");
+                // Check if the megalist container exists before trying to modify it
+                if ($("#megalist-transcript").length > 0) {
+                    $("#megalist-transcript").html("No transcript & subtitles available for this webcast.");
+                } else if ($("#sidebar-tab-pg-2").length > 0) {
+                    // Fallback to the main container if megalist isn't initialized
+                    $("#sidebar-tab-pg-2").html("No transcript & subtitles available for this webcast.");
+                }
                 //alert("No subtitles available for this webcast.");
                 return;
             }
@@ -270,3 +308,5 @@ let TranscriptDisplay = (() => {
     }
     return TranscriptDisplay;
 })();
+
+export { TranscriptDisplay };

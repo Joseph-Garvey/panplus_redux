@@ -3,7 +3,7 @@
     "version": "1.4.11",
     "description": "Improve your webcasting experience!",
     "manifest_version": 2,
-    "permissions": ["tabs", "storage"],
+    "permissions": ["tabs", "storage", "downloads"],
     "background": {
         "persistent": false,
         "scripts": ["libs/rob--w-chrome-api/worker_proxy.js"]
@@ -95,6 +95,7 @@
         "panopto/js/jsmpeg/vad-processor.js",
         "panopto/templates/sidebar.html",
         "panopto/templates/speed-slider.html",
-        "panopto/templates/volume-booster.html"
+        "panopto/templates/volume-booster.html",
+        "panopto/templates/download-button.html"
     ]
 }
